@@ -75,12 +75,20 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Periode Prediksi (Bulan)
+                            Tanggal Mulai Prediksi
                         </label>
-                        <input type="number" id="periodePrediksi" min="1" max="120"
-                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="Contoh: 12 bulan (1 tahun)" required>
-                        <p class="text-xs text-gray-500 mt-1">Berapa bulan ke depan ingin diprediksi</p>
+                        <input type="date" id="tanggalMulai" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        <p class="text-xs text-gray-500 mt-1">Pilih tanggal mulai perhitungan prediksi</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Tanggal Akhir Prediksi
+                        </label>
+                        <input type="date" id="tanggalAkhir" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                        <p class="text-xs text-gray-500 mt-1">Pilih tanggal target akhir prediksi</p>
                     </div>
 
                     <button type="submit" 
@@ -188,7 +196,22 @@
             const pengeluaranRutin = parseFloat(document.getElementById('pengeluaranRutin').value) || 0;
             const simpananRutin = parseFloat(document.getElementById('simpananRutin').value) || 0;
             const saldoAwal = parseFloat(document.getElementById('saldoAwal').value) || 0;
-            const periodePrediksi = parseInt(document.getElementById('periodePrediksi').value) || 0;
+            const tanggalMulai = new Date(document.getElementById('tanggalMulai').value);
+            const tanggalAkhir = new Date(document.getElementById('tanggalAkhir').value);
+            
+            // Hitung periode dalam bulan
+            const periodePrediksi = Math.ceil((tanggalAkhir - tanggalMulai) / (1000 * 60 * 60 * 24 * 30.44)); // 30.44 hari rata-rata per bulan
+            
+            // Validasi tanggal
+            if (tanggalAkhir <= tanggalMulai) {
+                alert('⚠️ Tanggal akhir harus lebih besar dari tanggal mulai!');
+                return;
+            }
+            
+            if (periodePrediksi <= 0) {
+                alert('⚠️ Periode prediksi harus lebih dari 0 bulan!');
+                return;
+            }
             
             // Hitung prediksi dengan logika baru
             const sisaSetelahPengeluaran = pemasukanRutin - pengeluaranRutin;
@@ -217,7 +240,7 @@
             
             // Tampilkan hasil utama
             document.getElementById('saldoAkhir').textContent = formatRupiah(saldoAkhir);
-            document.getElementById('periodePrediksi').textContent = `Setelah ${periodePrediksi} bulan dengan rutinitas keuangan`;
+            document.getElementById('periodePrediksi').textContent = `Dari ${tanggalMulai.toLocaleDateString('id-ID')} sampai ${tanggalAkhir.toLocaleDateString('id-ID')} (${periodePrediksi} bulan)`;
             
             // Analisis bulanan
             document.getElementById('pemasukanBulanan').textContent = formatRupiah(pemasukanRutin);
@@ -257,6 +280,16 @@
             
             // Scroll ke hasil (untuk mobile)
             document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        // Set tanggal default saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            const nextYear = new Date(today);
+            nextYear.setFullYear(today.getFullYear() + 1);
+            
+            document.getElementById('tanggalMulai').value = today.toISOString().split('T')[0];
+            document.getElementById('tanggalAkhir').value = nextYear.toISOString().split('T')[0];
         });
 
         // Variabel global untuk menyimpan data laporan
@@ -305,7 +338,9 @@
             const pengeluaranRutin = parseFloat(document.getElementById('pengeluaranRutin').value) || 0;
             const simpananRutin = parseFloat(document.getElementById('simpananRutin').value) || 0;
             const saldoAwal = parseFloat(document.getElementById('saldoAwal').value) || 0;
-            const periodePrediksi = parseInt(document.getElementById('periodePrediksi').value) || 0;
+            const tanggalMulai = new Date(document.getElementById('tanggalMulai').value);
+            const tanggalAkhir = new Date(document.getElementById('tanggalAkhir').value);
+            const periodePrediksi = Math.ceil((tanggalAkhir - tanggalMulai) / (1000 * 60 * 60 * 24 * 30.44));
 
             // Hitung ulang untuk laporan
             const sisaSetelahPengeluaran = pemasukanRutin - pengeluaranRutin;
@@ -320,7 +355,8 @@
             reportData = {
                 pemasukanRutin, pengeluaranRutin, simpananRutin, saldoAwal, periodePrediksi,
                 sisaSetelahPengeluaran, sisaSetelahTarget, totalPemasukanPeriode,
-                totalPengeluaranPeriode, totalSimpananTerkumpul, saldoAkhir, pertumbuhanSaldo
+                totalPengeluaranPeriode, totalSimpananTerkumpul, saldoAkhir, pertumbuhanSaldo,
+                tanggalMulai, tanggalAkhir
             };
 
             const formatRupiah = (angka) => {
@@ -331,17 +367,23 @@
                 }).format(angka);
             };
 
-            // Generate breakdown bulanan
+            // Generate breakdown bulanan dengan tanggal
             let breakdownBulanan = '';
             let saldoBerjalan = saldoAwal;
+            let tanggalBerjalan = new Date(tanggalMulai);
             
             for (let bulan = 1; bulan <= Math.min(periodePrediksi, 12); bulan++) {
                 const saldoAwalBulan = saldoBerjalan;
                 saldoBerjalan += sisaSetelahPengeluaran;
                 
+                const bulanTahun = tanggalBerjalan.toLocaleDateString('id-ID', { 
+                    month: 'short', 
+                    year: 'numeric' 
+                });
+                
                 breakdownBulanan += `
                     <tr class="border-b">
-                        <td class="py-2 px-4 text-center">${bulan}</td>
+                        <td class="py-2 px-4 text-center">${bulanTahun}</td>
                         <td class="py-2 px-4 text-right">${formatRupiah(saldoAwalBulan)}</td>
                         <td class="py-2 px-4 text-right text-green-600">${formatRupiah(pemasukanRutin)}</td>
                         <td class="py-2 px-4 text-right text-red-600">${formatRupiah(pengeluaranRutin)}</td>
@@ -349,6 +391,9 @@
                         <td class="py-2 px-4 text-right font-semibold">${formatRupiah(saldoBerjalan)}</td>
                     </tr>
                 `;
+                
+                // Tambah 1 bulan
+                tanggalBerjalan.setMonth(tanggalBerjalan.getMonth() + 1);
             }
 
             if (periodePrediksi > 12) {
@@ -366,7 +411,8 @@
                 <div class="text-center mb-6">
                     <h3 class="text-xl font-bold text-gray-800 mb-2">LAPORAN PREDIKSI KEUANGAN</h3>
                     <p class="text-gray-600">Dibuat pada: ${currentDate}</p>
-                    <p class="text-gray-600">Periode Prediksi: ${periodePrediksi} Bulan</p>
+                    <p class="text-gray-600">Periode Prediksi: ${tanggalMulai.toLocaleDateString('id-ID')} - ${tanggalAkhir.toLocaleDateString('id-ID')}</p>
+                    <p class="text-gray-600">Total: ${periodePrediksi} Bulan</p>
                 </div>
 
                 <!-- Ringkasan Eksekutif -->
@@ -443,7 +489,7 @@
                         <table class="w-full border border-gray-300 rounded-lg">
                             <thead class="bg-gray-100">
                                 <tr>
-                                    <th class="py-3 px-4 text-center border-b">Bulan</th>
+                                    <th class="py-3 px-4 text-center border-b">Periode</th>
                                     <th class="py-3 px-4 text-center border-b">Saldo Awal</th>
                                     <th class="py-3 px-4 text-center border-b">Pemasukan</th>
                                     <th class="py-3 px-4 text-center border-b">Pengeluaran</th>
@@ -635,14 +681,20 @@
             // Generate breakdown bulanan untuk PDF
             let breakdownBulanan = '';
             let saldoBerjalan = reportData.saldoAwal;
+            let tanggalBerjalan = new Date(reportData.tanggalMulai);
             
             for (let bulan = 1; bulan <= Math.min(reportData.periodePrediksi, 12); bulan++) {
                 const saldoAwalBulan = saldoBerjalan;
                 saldoBerjalan += reportData.sisaSetelahPengeluaran;
                 
+                const bulanTahun = tanggalBerjalan.toLocaleDateString('id-ID', { 
+                    month: 'short', 
+                    year: 'numeric' 
+                });
+                
                 breakdownBulanan += `
                     <tr style="border-bottom: 1px solid #ddd;">
-                        <td style="padding: 8px; text-align: center;">${bulan}</td>
+                        <td style="padding: 8px; text-align: center;">${bulanTahun}</td>
                         <td style="padding: 8px; text-align: right;">${formatRupiah(saldoAwalBulan)}</td>
                         <td style="padding: 8px; text-align: right; color: #059669;">${formatRupiah(reportData.pemasukanRutin)}</td>
                         <td style="padding: 8px; text-align: right; color: #dc2626;">${formatRupiah(reportData.pengeluaranRutin)}</td>
@@ -650,6 +702,9 @@
                         <td style="padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(saldoBerjalan)}</td>
                     </tr>
                 `;
+                
+                // Tambah 1 bulan
+                tanggalBerjalan.setMonth(tanggalBerjalan.getMonth() + 1);
             }
 
             return `<!DOCTYPE html>
@@ -717,7 +772,8 @@
     <div class="header">
         <h1>💰 LAPORAN PREDIKSI KEUANGAN</h1>
         <p>Dibuat pada: ${currentDate}</p>
-        <p>Periode Prediksi: ${reportData.periodePrediksi} Bulan</p>
+        <p>Periode Prediksi: ${reportData.tanggalMulai.toLocaleDateString('id-ID')} - ${reportData.tanggalAkhir.toLocaleDateString('id-ID')}</p>
+        <p>Total: ${reportData.periodePrediksi} Bulan</p>
     </div>
 
     <div class="section summary">
@@ -776,7 +832,7 @@
         <table>
             <thead>
                 <tr>
-                    <th>Bulan</th>
+                    <th>Periode</th>
                     <th>Saldo Awal</th>
                     <th>Pemasukan</th>
                     <th>Pengeluaran</th>
@@ -851,5 +907,5 @@ TOTAL PERIODE:
             `.trim();
         }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97e6beacb02cfd78',t:'MTc1Nzc1NzA3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97e6d47e8579d9ca',t:'MTc1Nzc1Nzk2Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
