@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Prediksi Keuangan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-white mb-2">💰 Sistem Prediksi Keuangan</h1>
+            <p class="text-blue-100">Rencanakan keuangan Anda dengan mudah</p>
+        </div>
+
+        <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-8">
+            <!-- Form Input Card -->
+            <div class="bg-white rounded-xl shadow-2xl p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center">
+                    📊 Input Data Keuangan Rutin
+                </h2>
+                <div class="bg-green-50 border-l-4 border-green-400 p-3 mb-6">
+                    <p class="text-sm text-green-700">
+                        💡 <strong>Catatan:</strong> Masukkan data rutin bulanan Anda untuk prediksi keuangan yang akurat.
+                    </p>
+                </div>
+                
+                <form id="financeForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Pemasukan Bulanan Rutin (Rp)
+                        </label>
+                        <input type="number" id="pemasukanRutin" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Contoh: gaji + bonus rutin, 6000000" required>
+                        <p class="text-xs text-gray-500 mt-1">Total pemasukan yang diterima setiap bulan</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Pengeluaran Rutin per Bulan (Rp)
+                        </label>
+                        <input type="number" id="pengeluaranRutin" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Contoh: biaya hidup + cicilan, 4000000" required>
+                        <p class="text-xs text-gray-500 mt-1">Total pengeluaran tetap setiap bulan</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Target Simpanan per Bulan (Rp)
+                        </label>
+                        <input type="number" id="simpananRutin" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Contoh: tabungan rutin, 1500000" required>
+                        <p class="text-xs text-gray-500 mt-1">Jumlah yang ingin ditabung setiap bulan</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Saldo Awal Saat Ini (Rp)
+                        </label>
+                        <input type="number" id="saldoAwal" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Contoh: tabungan sekarang, 10000000" required>
+                        <p class="text-xs text-gray-500 mt-1">Jumlah uang yang sudah ada saat ini</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Periode Prediksi (Bulan)
+                        </label>
+                        <input type="number" id="periodePrediksi" min="1" max="120"
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="Contoh: 12 bulan (1 tahun)" required>
+                        <p class="text-xs text-gray-500 mt-1">Berapa bulan ke depan ingin diprediksi</p>
+                    </div>
+
+                    <button type="submit" 
+                            class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg">
+                        🧮 Hitung Prediksi
+                    </button>
+                </form>
+            </div>
+
+            <!-- Results Card -->
+            <div class="bg-white rounded-xl shadow-2xl p-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
+                    📈 Hasil Prediksi
+                </h2>
+                
+                <div id="results" class="hidden space-y-4">
+                    <div class="bg-gradient-to-r from-green-50 to-green-100 border-l-4 border-green-500 p-4 rounded-r-lg">
+                        <h3 class="font-semibold text-green-800 mb-2">💰 Saldo Akhir Prediksi</h3>
+                        <p id="saldoAkhir" class="text-2xl font-bold text-green-700"></p>
+                        <p id="periodePrediksi" class="text-sm text-green-600"></p>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                        <h3 class="font-semibold text-blue-800 mb-2">📊 Analisis Bulanan</h3>
+                        <div class="space-y-1 text-sm text-blue-700">
+                            <p>Pemasukan Rutin: <span id="pemasukanBulanan" class="font-semibold"></span></p>
+                            <p>Pengeluaran Rutin: <span id="pengeluaranBulanan" class="font-semibold"></span></p>
+                            <p>Target Simpanan: <span id="targetSimpanan" class="font-semibold"></span></p>
+                            <p>Sisa Setelah Target: <span id="sisaSetelahTarget" class="font-semibold"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-purple-50 to-purple-100 border-l-4 border-purple-500 p-4 rounded-r-lg">
+                        <h3 class="font-semibold text-purple-800 mb-2">🎯 Status Keuangan</h3>
+                        <div class="space-y-1 text-sm text-purple-700">
+                            <p>Status Target: <span id="statusTarget" class="font-semibold"></span></p>
+                            <p>Kemampuan Menabung: <span id="kemampuanMenabung" class="font-semibold"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-orange-50 to-orange-100 border-l-4 border-orange-500 p-4 rounded-r-lg">
+                        <h3 class="font-semibold text-orange-800 mb-2">📈 Akumulasi Total</h3>
+                        <div class="space-y-1 text-sm text-orange-700">
+                            <p>Total Pemasukan: <span id="totalPemasukanPeriode" class="font-semibold"></span></p>
+                            <p>Total Pengeluaran: <span id="totalPengeluaranPeriode" class="font-semibold"></span></p>
+                            <p>Total Simpanan Terkumpul: <span id="totalSimpananTerkumpul" class="font-semibold"></span></p>
+                            <p>Pertumbuhan dari Saldo Awal: <span id="pertumbuhanSaldo" class="font-semibold"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="placeholder" class="text-center py-12">
+                    <div class="text-6xl mb-4">📋</div>
+                    <p class="text-gray-500">Isi form di sebelah kiri untuk melihat prediksi keuangan Anda</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('financeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Ambil nilai input
+            const pemasukanRutin = parseFloat(document.getElementById('pemasukanRutin').value) || 0;
+            const pengeluaranRutin = parseFloat(document.getElementById('pengeluaranRutin').value) || 0;
+            const simpananRutin = parseFloat(document.getElementById('simpananRutin').value) || 0;
+            const saldoAwal = parseFloat(document.getElementById('saldoAwal').value) || 0;
+            const periodePrediksi = parseInt(document.getElementById('periodePrediksi').value) || 0;
+            
+            // Hitung prediksi dengan logika baru
+            const sisaSetelahPengeluaran = pemasukanRutin - pengeluaranRutin;
+            const sisaSetelahTarget = sisaSetelahPengeluaran - simpananRutin;
+            
+            // Perhitungan akumulasi
+            const totalPemasukanPeriode = pemasukanRutin * periodePrediksi;
+            const totalPengeluaranPeriode = pengeluaranRutin * periodePrediksi;
+            const totalSimpananTerkumpul = simpananRutin * periodePrediksi;
+            
+            // Saldo akhir = saldo awal + total simpanan terkumpul + sisa setelah target (jika ada)
+            const saldoAkhir = saldoAwal + totalSimpananTerkumpul + (sisaSetelahTarget > 0 ? sisaSetelahTarget * periodePrediksi : 0);
+            
+            // Pertumbuhan saldo
+            const pertumbuhanSaldo = saldoAkhir - saldoAwal;
+            const persentasePertumbuhan = saldoAwal > 0 ? ((pertumbuhanSaldo / saldoAwal) * 100).toFixed(1) : 0;
+            
+            // Format angka ke Rupiah
+            const formatRupiah = (angka) => {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(angka);
+            };
+            
+            // Tampilkan hasil utama
+            document.getElementById('saldoAkhir').textContent = formatRupiah(saldoAkhir);
+            document.getElementById('periodePrediksi').textContent = `Setelah ${periodePrediksi} bulan dengan rutinitas keuangan`;
+            
+            // Analisis bulanan
+            document.getElementById('pemasukanBulanan').textContent = formatRupiah(pemasukanRutin);
+            document.getElementById('pengeluaranBulanan').textContent = formatRupiah(pengeluaranRutin);
+            document.getElementById('targetSimpanan').textContent = formatRupiah(simpananRutin);
+            document.getElementById('sisaSetelahTarget').textContent = formatRupiah(sisaSetelahTarget);
+            
+            // Status keuangan
+            let statusTarget = '';
+            let kemampuanMenabung = '';
+            
+            if (sisaSetelahPengeluaran >= simpananRutin) {
+                if (sisaSetelahTarget > 0) {
+                    statusTarget = '✅ Target Tercapai dengan Surplus';
+                    kemampuanMenabung = `💪 Sangat Baik (Surplus ${formatRupiah(sisaSetelahTarget)})`;
+                } else {
+                    statusTarget = '✅ Target Tercapai Pas';
+                    kemampuanMenabung = '👍 Baik (Sesuai Target)';
+                }
+            } else {
+                statusTarget = '⚠️ Target Tidak Tercapai';
+                kemampuanMenabung = `❌ Kurang (Defisit ${formatRupiah(Math.abs(sisaSetelahTarget))})`;
+            }
+            
+            document.getElementById('statusTarget').textContent = statusTarget;
+            document.getElementById('kemampuanMenabung').textContent = kemampuanMenabung;
+            
+            // Akumulasi total
+            document.getElementById('totalPemasukanPeriode').textContent = formatRupiah(totalPemasukanPeriode);
+            document.getElementById('totalPengeluaranPeriode').textContent = formatRupiah(totalPengeluaranPeriode);
+            document.getElementById('totalSimpananTerkumpul').textContent = formatRupiah(totalSimpananTerkumpul);
+            document.getElementById('pertumbuhanSaldo').textContent = `${formatRupiah(pertumbuhanSaldo)} (+${persentasePertumbuhan}%)`;
+            
+            // Sembunyikan placeholder dan tampilkan hasil
+            document.getElementById('placeholder').classList.add('hidden');
+            document.getElementById('results').classList.remove('hidden');
+            
+            // Scroll ke hasil (untuk mobile)
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97e5f5ccf7a0fe1d',t:'MTc1Nzc0ODg0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
