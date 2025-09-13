@@ -130,11 +130,50 @@
                             <p>Pertumbuhan dari Saldo Awal: <span id="pertumbuhanSaldo" class="font-semibold"></span></p>
                         </div>
                     </div>
+
+                    <!-- Tombol Generate Laporan -->
+                    <div class="text-center mt-6">
+                        <button id="generateReport" 
+                                class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-105 shadow-lg">
+                            📋 Generate Laporan Lengkap
+                        </button>
+                    </div>
                 </div>
 
                 <div id="placeholder" class="text-center py-12">
                     <div class="text-6xl mb-4">📋</div>
                     <p class="text-gray-500">Isi form di sebelah kiri untuk melihat prediksi keuangan Anda</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Laporan -->
+        <div id="reportModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800">📊 Laporan Prediksi Keuangan</h2>
+                        <button id="closeModal" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    </div>
+                    
+                    <div id="reportContent" class="space-y-6">
+                        <!-- Konten laporan akan diisi oleh JavaScript -->
+                    </div>
+                    
+                    <div class="flex gap-4 mt-8 pt-6 border-t">
+                        <button id="printReport" 
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
+                            🖨️ Cetak Laporan
+                        </button>
+                        <button id="downloadReport" 
+                                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
+                            💾 Download PDF
+                        </button>
+                        <button id="shareReport" 
+                                class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300">
+                            📤 Bagikan
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -219,6 +258,598 @@
             // Scroll ke hasil (untuk mobile)
             document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
+
+        // Variabel global untuk menyimpan data laporan
+        let reportData = {};
+
+        // Event listener untuk tombol generate laporan
+        document.getElementById('generateReport').addEventListener('click', function() {
+            generateDetailedReport();
+            document.getElementById('reportModal').classList.remove('hidden');
+        });
+
+        // Event listener untuk menutup modal
+        document.getElementById('closeModal').addEventListener('click', function() {
+            document.getElementById('reportModal').classList.add('hidden');
+        });
+
+        // Event listener untuk cetak laporan
+        document.getElementById('printReport').addEventListener('click', function() {
+            // Cetak otomatis tanpa konfirmasi
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        });
+
+        // Event listener untuk download PDF
+        document.getElementById('downloadReport').addEventListener('click', function() {
+            downloadReportAsPDF();
+        });
+
+        // Event listener untuk share laporan
+        document.getElementById('shareReport').addEventListener('click', function() {
+            shareToSocialMedia();
+        });
+
+        // Fungsi untuk generate laporan detail
+        function generateDetailedReport() {
+            const currentDate = new Date().toLocaleDateString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            // Ambil data dari form
+            const pemasukanRutin = parseFloat(document.getElementById('pemasukanRutin').value) || 0;
+            const pengeluaranRutin = parseFloat(document.getElementById('pengeluaranRutin').value) || 0;
+            const simpananRutin = parseFloat(document.getElementById('simpananRutin').value) || 0;
+            const saldoAwal = parseFloat(document.getElementById('saldoAwal').value) || 0;
+            const periodePrediksi = parseInt(document.getElementById('periodePrediksi').value) || 0;
+
+            // Hitung ulang untuk laporan
+            const sisaSetelahPengeluaran = pemasukanRutin - pengeluaranRutin;
+            const sisaSetelahTarget = sisaSetelahPengeluaran - simpananRutin;
+            const totalPemasukanPeriode = pemasukanRutin * periodePrediksi;
+            const totalPengeluaranPeriode = pengeluaranRutin * periodePrediksi;
+            const totalSimpananTerkumpul = simpananRutin * periodePrediksi;
+            const saldoAkhir = saldoAwal + totalSimpananTerkumpul + (sisaSetelahTarget > 0 ? sisaSetelahTarget * periodePrediksi : 0);
+            const pertumbuhanSaldo = saldoAkhir - saldoAwal;
+
+            // Simpan data untuk fungsi lain
+            reportData = {
+                pemasukanRutin, pengeluaranRutin, simpananRutin, saldoAwal, periodePrediksi,
+                sisaSetelahPengeluaran, sisaSetelahTarget, totalPemasukanPeriode,
+                totalPengeluaranPeriode, totalSimpananTerkumpul, saldoAkhir, pertumbuhanSaldo
+            };
+
+            const formatRupiah = (angka) => {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(angka);
+            };
+
+            // Generate breakdown bulanan
+            let breakdownBulanan = '';
+            let saldoBerjalan = saldoAwal;
+            
+            for (let bulan = 1; bulan <= Math.min(periodePrediksi, 12); bulan++) {
+                const saldoAwalBulan = saldoBerjalan;
+                saldoBerjalan += sisaSetelahPengeluaran;
+                
+                breakdownBulanan += `
+                    <tr class="border-b">
+                        <td class="py-2 px-4 text-center">${bulan}</td>
+                        <td class="py-2 px-4 text-right">${formatRupiah(saldoAwalBulan)}</td>
+                        <td class="py-2 px-4 text-right text-green-600">${formatRupiah(pemasukanRutin)}</td>
+                        <td class="py-2 px-4 text-right text-red-600">${formatRupiah(pengeluaranRutin)}</td>
+                        <td class="py-2 px-4 text-right text-blue-600">${formatRupiah(simpananRutin)}</td>
+                        <td class="py-2 px-4 text-right font-semibold">${formatRupiah(saldoBerjalan)}</td>
+                    </tr>
+                `;
+            }
+
+            if (periodePrediksi > 12) {
+                breakdownBulanan += `
+                    <tr class="border-b bg-gray-50">
+                        <td colspan="6" class="py-2 px-4 text-center text-gray-600 italic">
+                            ... dan ${periodePrediksi - 12} bulan lainnya dengan pola yang sama
+                        </td>
+                    </tr>
+                `;
+            }
+
+            // Generate konten laporan
+            const reportContent = `
+                <div class="text-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">LAPORAN PREDIKSI KEUANGAN</h3>
+                    <p class="text-gray-600">Dibuat pada: ${currentDate}</p>
+                    <p class="text-gray-600">Periode Prediksi: ${periodePrediksi} Bulan</p>
+                </div>
+
+                <!-- Ringkasan Eksekutif -->
+                <div class="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-blue-800 mb-4">📋 Ringkasan Eksekutif</h4>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-blue-700 mb-1">Saldo Awal:</p>
+                            <p class="text-xl font-bold text-blue-800">${formatRupiah(saldoAwal)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-700 mb-1">Prediksi Saldo Akhir:</p>
+                            <p class="text-xl font-bold text-blue-800">${formatRupiah(saldoAkhir)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-700 mb-1">Total Pertumbuhan:</p>
+                            <p class="text-xl font-bold text-green-600">${formatRupiah(pertumbuhanSaldo)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-700 mb-1">Persentase Pertumbuhan:</p>
+                            <p class="text-xl font-bold text-green-600">${saldoAwal > 0 ? ((pertumbuhanSaldo / saldoAwal) * 100).toFixed(1) : 0}%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Input -->
+                <div class="bg-gray-50 p-6 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">📊 Data Input Keuangan</h4>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600">Pemasukan Bulanan Rutin:</p>
+                            <p class="text-lg font-semibold text-green-600">${formatRupiah(pemasukanRutin)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Pengeluaran Rutin per Bulan:</p>
+                            <p class="text-lg font-semibold text-red-600">${formatRupiah(pengeluaranRutin)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Target Simpanan per Bulan:</p>
+                            <p class="text-lg font-semibold text-blue-600">${formatRupiah(simpananRutin)}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Sisa Setelah Target Simpanan:</p>
+                            <p class="text-lg font-semibold ${sisaSetelahTarget >= 0 ? 'text-green-600' : 'text-red-600'}">${formatRupiah(sisaSetelahTarget)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analisis Keuangan -->
+                <div class="bg-yellow-50 p-6 rounded-lg mb-6">
+                    <h4 class="text-lg font-semibold text-yellow-800 mb-4">🔍 Analisis Keuangan</h4>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-yellow-700">Rasio Pengeluaran terhadap Pemasukan:</span>
+                            <span class="font-semibold">${((pengeluaranRutin / pemasukanRutin) * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-yellow-700">Rasio Simpanan terhadap Pemasukan:</span>
+                            <span class="font-semibold">${((simpananRutin / pemasukanRutin) * 100).toFixed(1)}%</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-yellow-700">Kemampuan Menabung:</span>
+                            <span class="font-semibold ${sisaSetelahTarget >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                ${sisaSetelahTarget >= 0 ? 'Tercapai' : 'Tidak Tercapai'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Breakdown Bulanan -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4">📅 Breakdown Bulanan (${Math.min(periodePrediksi, 12)} Bulan Pertama)</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full border border-gray-300 rounded-lg">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th class="py-3 px-4 text-center border-b">Bulan</th>
+                                    <th class="py-3 px-4 text-center border-b">Saldo Awal</th>
+                                    <th class="py-3 px-4 text-center border-b">Pemasukan</th>
+                                    <th class="py-3 px-4 text-center border-b">Pengeluaran</th>
+                                    <th class="py-3 px-4 text-center border-b">Simpanan</th>
+                                    <th class="py-3 px-4 text-center border-b">Saldo Akhir</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${breakdownBulanan}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Rekomendasi -->
+                <div class="bg-green-50 p-6 rounded-lg">
+                    <h4 class="text-lg font-semibold text-green-800 mb-4">💡 Rekomendasi</h4>
+                    <ul class="space-y-2 text-green-700">
+                        ${sisaSetelahTarget < 0 ? 
+                            '<li>• Pertimbangkan untuk mengurangi pengeluaran atau meningkatkan pemasukan</li>' +
+                            '<li>• Target simpanan mungkin terlalu tinggi untuk kondisi keuangan saat ini</li>' 
+                            : 
+                            '<li>• Kondisi keuangan Anda baik dengan surplus bulanan</li>' +
+                            '<li>• Pertimbangkan untuk meningkatkan target simpanan atau investasi</li>'
+                        }
+                        <li>• Lakukan review rutin setiap 3-6 bulan untuk memastikan target tercapai</li>
+                        <li>• Siapkan dana darurat minimal 6 bulan pengeluaran</li>
+                        <li>• Pertimbangkan diversifikasi simpanan ke instrumen investasi</li>
+                    </ul>
+                </div>
+            `;
+
+            document.getElementById('reportContent').innerHTML = reportContent;
+        }
+
+        // Fungsi download PDF otomatis
+        function downloadReportAsPDF() {
+            // Buat konten HTML untuk PDF
+            const reportHTML = generatePDFContent();
+            
+            // Buat window baru untuk print
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(reportHTML);
+            printWindow.document.close();
+            
+            // Tunggu konten dimuat, lalu print
+            printWindow.onload = function() {
+                printWindow.print();
+                
+                // Tutup window setelah print dialog
+                printWindow.onafterprint = function() {
+                    printWindow.close();
+                };
+            };
+            
+            // Fallback: jika browser tidak support, download sebagai HTML
+            setTimeout(() => {
+                const blob = new Blob([reportHTML], { type: 'text/html' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Laporan_Keuangan_${new Date().toISOString().split('T')[0]}.html`;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 1000);
+        }
+
+        // Fungsi share ke media sosial
+        function shareToSocialMedia() {
+            const reportSummary = generateSocialMediaText();
+            
+            // Buat modal pilihan media sosial
+            const socialModal = document.createElement('div');
+            socialModal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+            socialModal.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 text-center">📤 Bagikan Laporan</h3>
+                    <div class="space-y-3">
+                        <button onclick="shareToWhatsApp('${encodeURIComponent(reportSummary)}')" 
+                                class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                            📱 WhatsApp
+                        </button>
+                        <button onclick="shareToTwitter('${encodeURIComponent(reportSummary)}')" 
+                                class="w-full bg-blue-400 hover:bg-blue-500 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                            🐦 Twitter
+                        </button>
+                        <button onclick="shareToFacebook('${encodeURIComponent(reportSummary)}')" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                            📘 Facebook
+                        </button>
+                        <button onclick="shareToTelegram('${encodeURIComponent(reportSummary)}')" 
+                                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                            ✈️ Telegram
+                        </button>
+                        <button onclick="copyToClipboard('${encodeURIComponent(reportSummary)}')" 
+                                class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center">
+                            📋 Salin ke Clipboard
+                        </button>
+                    </div>
+                    <button onclick="closeSocialModal()" 
+                            class="w-full mt-4 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded-lg transition duration-300">
+                        Tutup
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(socialModal);
+            window.currentSocialModal = socialModal;
+        }
+
+        // Fungsi generate text untuk media sosial
+        function generateSocialMediaText() {
+            const formatRupiah = (angka) => {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(angka);
+            };
+
+            return `💰 LAPORAN PREDIKSI KEUANGAN
+
+📊 Ringkasan ${reportData.periodePrediksi} Bulan:
+• Saldo Awal: ${formatRupiah(reportData.saldoAwal)}
+• Prediksi Saldo Akhir: ${formatRupiah(reportData.saldoAkhir)}
+• Pertumbuhan: ${formatRupiah(reportData.pertumbuhanSaldo)} (+${reportData.saldoAwal > 0 ? ((reportData.pertumbuhanSaldo / reportData.saldoAwal) * 100).toFixed(1) : 0}%)
+
+💡 Status: ${reportData.sisaSetelahTarget >= 0 ? 'Target Tercapai ✅' : 'Perlu Penyesuaian ⚠️'}
+
+#PrediksiKeuangan #PerencanaanKeuangan #Tabungan`;
+        }
+
+        // Fungsi share ke platform spesifik
+        function shareToWhatsApp(text) {
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+            closeSocialModal();
+        }
+
+        function shareToTwitter(text) {
+            window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+            closeSocialModal();
+        }
+
+        function shareToFacebook(text) {
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${text}`, '_blank');
+            closeSocialModal();
+        }
+
+        function shareToTelegram(text) {
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${text}`, '_blank');
+            closeSocialModal();
+        }
+
+        function copyToClipboard(text) {
+            const decodedText = decodeURIComponent(text);
+            navigator.clipboard.writeText(decodedText).then(() => {
+                alert('📋 Laporan berhasil disalin ke clipboard!');
+                closeSocialModal();
+            });
+        }
+
+        function closeSocialModal() {
+            if (window.currentSocialModal) {
+                document.body.removeChild(window.currentSocialModal);
+                window.currentSocialModal = null;
+            }
+        }
+
+        // Fungsi generate konten PDF
+        function generatePDFContent() {
+            const currentDate = new Date().toLocaleDateString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+
+            const formatRupiah = (angka) => {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(angka);
+            };
+
+            // Generate breakdown bulanan untuk PDF
+            let breakdownBulanan = '';
+            let saldoBerjalan = reportData.saldoAwal;
+            
+            for (let bulan = 1; bulan <= Math.min(reportData.periodePrediksi, 12); bulan++) {
+                const saldoAwalBulan = saldoBerjalan;
+                saldoBerjalan += reportData.sisaSetelahPengeluaran;
+                
+                breakdownBulanan += `
+                    <tr style="border-bottom: 1px solid #ddd;">
+                        <td style="padding: 8px; text-align: center;">${bulan}</td>
+                        <td style="padding: 8px; text-align: right;">${formatRupiah(saldoAwalBulan)}</td>
+                        <td style="padding: 8px; text-align: right; color: #059669;">${formatRupiah(reportData.pemasukanRutin)}</td>
+                        <td style="padding: 8px; text-align: right; color: #dc2626;">${formatRupiah(reportData.pengeluaranRutin)}</td>
+                        <td style="padding: 8px; text-align: right; color: #2563eb;">${formatRupiah(reportData.simpananRutin)}</td>
+                        <td style="padding: 8px; text-align: right; font-weight: bold;">${formatRupiah(saldoBerjalan)}</td>
+                    </tr>
+                `;
+            }
+
+            return `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Prediksi Keuangan</title>
+    <style>
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+        }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .summary { background-color: #dbeafe; }
+        .input-data { background-color: #f3f4f6; }
+        .analysis { background-color: #fef3c7; }
+        .recommendations { background-color: #d1fae5; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th {
+            background-color: #f3f4f6;
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+            font-weight: bold;
+        }
+        .value {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .positive { color: #059669; }
+        .negative { color: #dc2626; }
+        .neutral { color: #2563eb; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💰 LAPORAN PREDIKSI KEUANGAN</h1>
+        <p>Dibuat pada: ${currentDate}</p>
+        <p>Periode Prediksi: ${reportData.periodePrediksi} Bulan</p>
+    </div>
+
+    <div class="section summary">
+        <h2>📋 Ringkasan Eksekutif</h2>
+        <div class="grid">
+            <div>
+                <p>Saldo Awal:</p>
+                <p class="value neutral">${formatRupiah(reportData.saldoAwal)}</p>
+            </div>
+            <div>
+                <p>Prediksi Saldo Akhir:</p>
+                <p class="value neutral">${formatRupiah(reportData.saldoAkhir)}</p>
+            </div>
+            <div>
+                <p>Total Pertumbuhan:</p>
+                <p class="value positive">${formatRupiah(reportData.pertumbuhanSaldo)}</p>
+            </div>
+            <div>
+                <p>Persentase Pertumbuhan:</p>
+                <p class="value positive">${reportData.saldoAwal > 0 ? ((reportData.pertumbuhanSaldo / reportData.saldoAwal) * 100).toFixed(1) : 0}%</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section input-data">
+        <h2>📊 Data Input Keuangan</h2>
+        <div class="grid">
+            <div>
+                <p>Pemasukan Bulanan Rutin:</p>
+                <p class="value positive">${formatRupiah(reportData.pemasukanRutin)}</p>
+            </div>
+            <div>
+                <p>Pengeluaran Rutin per Bulan:</p>
+                <p class="value negative">${formatRupiah(reportData.pengeluaranRutin)}</p>
+            </div>
+            <div>
+                <p>Target Simpanan per Bulan:</p>
+                <p class="value neutral">${formatRupiah(reportData.simpananRutin)}</p>
+            </div>
+            <div>
+                <p>Sisa Setelah Target Simpanan:</p>
+                <p class="value ${reportData.sisaSetelahTarget >= 0 ? 'positive' : 'negative'}">${formatRupiah(reportData.sisaSetelahTarget)}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section analysis">
+        <h2>🔍 Analisis Keuangan</h2>
+        <p><strong>Rasio Pengeluaran terhadap Pemasukan:</strong> ${((reportData.pengeluaranRutin / reportData.pemasukanRutin) * 100).toFixed(1)}%</p>
+        <p><strong>Rasio Simpanan terhadap Pemasukan:</strong> ${((reportData.simpananRutin / reportData.pemasukanRutin) * 100).toFixed(1)}%</p>
+        <p><strong>Kemampuan Menabung:</strong> ${reportData.sisaSetelahTarget >= 0 ? 'Tercapai' : 'Tidak Tercapai'}</p>
+    </div>
+
+    <div class="section">
+        <h2>📅 Breakdown Bulanan (${Math.min(reportData.periodePrediksi, 12)} Bulan Pertama)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Bulan</th>
+                    <th>Saldo Awal</th>
+                    <th>Pemasukan</th>
+                    <th>Pengeluaran</th>
+                    <th>Simpanan</th>
+                    <th>Saldo Akhir</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${breakdownBulanan}
+            </tbody>
+        </table>
+        ${reportData.periodePrediksi > 12 ? `<p style="text-align: center; font-style: italic; margin-top: 10px;">... dan ${reportData.periodePrediksi - 12} bulan lainnya dengan pola yang sama</p>` : ''}
+    </div>
+
+    <div class="section recommendations">
+        <h2>💡 Rekomendasi</h2>
+        <ul>
+            ${reportData.sisaSetelahTarget < 0 ? 
+                '<li>Pertimbangkan untuk mengurangi pengeluaran atau meningkatkan pemasukan</li>' +
+                '<li>Target simpanan mungkin terlalu tinggi untuk kondisi keuangan saat ini</li>' 
+                : 
+                '<li>Kondisi keuangan Anda baik dengan surplus bulanan</li>' +
+                '<li>Pertimbangkan untuk meningkatkan target simpanan atau investasi</li>'
+            }
+            <li>Lakukan review rutin setiap 3-6 bulan untuk memastikan target tercapai</li>
+            <li>Siapkan dana darurat minimal 6 bulan pengeluaran</li>
+            <li>Pertimbangkan diversifikasi simpanan ke instrumen investasi</li>
+        </ul>
+    </div>
+
+    <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd;">
+        <p style="font-size: 0.9em; color: #666;">
+            Laporan ini dibuat secara otomatis oleh Sistem Prediksi Keuangan<br>
+            Tanggal: ${currentDate}
+        </p>
+    </div>
+</body>
+</html>
+            `;
+        }
+
+        // Fungsi generate text report
+        function generateTextReport() {
+            const formatRupiah = (angka) => {
+                return new Intl.NumberFormat('id-ID', {
+                    style: 'currency',
+                    currency: 'IDR',
+                    minimumFractionDigits: 0
+                }).format(angka);
+            };
+
+            return `
+LAPORAN PREDIKSI KEUANGAN
+Dibuat pada: ${new Date().toLocaleDateString('id-ID')}
+Periode Prediksi: ${reportData.periodePrediksi} Bulan
+
+RINGKASAN:
+- Saldo Awal: ${formatRupiah(reportData.saldoAwal)}
+- Prediksi Saldo Akhir: ${formatRupiah(reportData.saldoAkhir)}
+- Total Pertumbuhan: ${formatRupiah(reportData.pertumbuhanSaldo)}
+
+DATA BULANAN:
+- Pemasukan Rutin: ${formatRupiah(reportData.pemasukanRutin)}
+- Pengeluaran Rutin: ${formatRupiah(reportData.pengeluaranRutin)}
+- Target Simpanan: ${formatRupiah(reportData.simpananRutin)}
+- Sisa Setelah Target: ${formatRupiah(reportData.sisaSetelahTarget)}
+
+TOTAL PERIODE:
+- Total Pemasukan: ${formatRupiah(reportData.totalPemasukanPeriode)}
+- Total Pengeluaran: ${formatRupiah(reportData.totalPengeluaranPeriode)}
+- Total Simpanan: ${formatRupiah(reportData.totalSimpananTerkumpul)}
+            `.trim();
+        }
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97e5f5ccf7a0fe1d',t:'MTc1Nzc0ODg0NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97e6beacb02cfd78',t:'MTc1Nzc1NzA3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
